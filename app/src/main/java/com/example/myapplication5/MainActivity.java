@@ -38,7 +38,10 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Locale;
 
 //public class MainActivity extends AppCompatActivity {
 //public class AudioRecordTest extends AppCompatActivity{
@@ -161,6 +164,8 @@ public class MainActivity extends ActionMenuActivity {
         assert btn != null;
 
         reddot = findViewById(R.id.imageView2);
+        int imageResource = getResources().getIdentifier("@drawable/reddot","drawable",getPackageName());
+        reddot.setImageResource(imageResource);
 
         Toast.makeText(MainActivity.this, "Tap to start App.", Toast.LENGTH_LONG).show();
 
@@ -201,7 +206,9 @@ public class MainActivity extends ActionMenuActivity {
 
     private void onRecord(boolean start) {
         if (start) {
-            fileName = getExternalFilesDir(Environment.DIRECTORY_PICTURES).getAbsolutePath()+"/"+filesavetimestamp;
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss",Locale.getDefault());
+
+            fileName = getExternalFilesDir(Environment.DIRECTORY_PICTURES).getAbsolutePath()+"/"+simpleDateFormat.format(new Date());
             startRecording(fileName);
             startSensor(fileName);
 
@@ -234,7 +241,33 @@ public class MainActivity extends ActionMenuActivity {
 
 
     private void startSensor(String fileName){
-        if(System.currentTimeMillis()-filesavetimestamp > 3000){
+        // register this class as a listener for the gyroscope sensor
+        sensorManager.registerListener(sensorEventListener,
+                sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
+                SensorManager.SENSOR_DELAY_NORMAL);
+
+        // register this class as a listener for the gyroscope sensor
+        sensorManager.registerListener(sensorEventListener,
+                sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
+                SensorManager.SENSOR_DELAY_NORMAL);
+
+
+        // register this class as a listener for the gyroscope sensor
+        sensorManager.registerListener(sensorEventListener,
+                sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),
+                SensorManager.SENSOR_DELAY_NORMAL);
+
+        // register this class as a listener for the gyroscope sensor
+        sensorManager.registerListener(sensorEventListener,
+                sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT),
+                SensorManager.SENSOR_DELAY_NORMAL);
+
+        // register this class as a listener for the gyroscope sensor
+        sensorManager.registerListener(sensorEventListener,
+                sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE),
+                SensorManager.SENSOR_DELAY_NORMAL);
+
+        if(System.currentTimeMillis()-filesavetimestamp > 3000){  //save every 3 seconds
             saveFile = new File(fileName + ".json");
             Log.d("startSensor",saveFile.getAbsolutePath());
             if(isExternalStorageWritable()) {
@@ -304,9 +337,7 @@ public class MainActivity extends ActionMenuActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        Log.d("emotion", String.valueOf(sensorDic));
         // unregister listener
-        super.onPause();
         sensorManager.unregisterListener(sensorEventListener);
     }
 
@@ -316,31 +347,7 @@ public class MainActivity extends ActionMenuActivity {
 
         //KNOWN SENSOR Available
 
-        // register this class as a listener for the gyroscope sensor
-        sensorManager.registerListener(sensorEventListener,
-                sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
-                SensorManager.SENSOR_DELAY_NORMAL);
 
-        // register this class as a listener for the gyroscope sensor
-        sensorManager.registerListener(sensorEventListener,
-                sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-                SensorManager.SENSOR_DELAY_NORMAL);
-
-
-        // register this class as a listener for the gyroscope sensor
-        sensorManager.registerListener(sensorEventListener,
-                sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),
-                SensorManager.SENSOR_DELAY_NORMAL);
-
-        // register this class as a listener for the gyroscope sensor
-        sensorManager.registerListener(sensorEventListener,
-                sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT),
-                SensorManager.SENSOR_DELAY_NORMAL);
-
-        // register this class as a listener for the gyroscope sensor
-        sensorManager.registerListener(sensorEventListener,
-                sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE),
-                SensorManager.SENSOR_DELAY_NORMAL);
     }
 
 

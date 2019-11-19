@@ -66,10 +66,13 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Timer;
+import java.util.TimerTask;
 
-public class MainActivity extends AppCompatActivity {
+//public class MainActivity extends AppCompatActivity {
 //public class AudioRecordTest extends AppCompatActivity{
-//public class MainActivity extends ActionMenuActivity {
+public class MainActivity extends ActionMenuActivity {
+    public SimpleDateFormat DateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault());
 
     private SensorManager sensorManager;
     private SensorEventListener sensorEventListener;
@@ -81,7 +84,6 @@ public class MainActivity extends AppCompatActivity {
 
     private Button btn;
     private File saveFile;
-    private Camera mCamera;
     private Button takePictureButton;
     private TextView textView;
     private static final String LOG_TAG = "AudioRecordTest";
@@ -92,11 +94,11 @@ public class MainActivity extends AppCompatActivity {
     private File outputFile = null;
 
     //    private RecordButton recordButton = null;
-
+    private static final String TAG = "Thesis";
+    private static final String ACTION = "Drink_";
     private boolean mstartRecording = false;
 
     //    private PlayButton   playButton = null;
-    private MediaPlayer player = null;
     private Handler timerHandler = new Handler();
     // Requesting permission to RECORD_AUDIO
     private boolean permissionToRecordAccepted = false;
@@ -113,6 +115,8 @@ public class MainActivity extends AppCompatActivity {
     private MediaRecorder recorder = new MediaRecorder();
 
     private HandlerThread backgroundThread;
+    private CameraDevice cameraDevice;
+    SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault());
 
     @Override
     public void onCreate(Bundle icicle) {
@@ -134,7 +138,7 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 JSONObject sensorValue = new JSONObject();
-                Log.d("emotion2", String.valueOf(sensorEvent.sensor.getStringType()));
+                Log.d(TAG, "sensor get stringType" + sensorEvent.sensor.getStringType());
                 switch (sensorEvent.sensor.getStringType()) {
 
                     case Sensor.STRING_TYPE_ACCELEROMETER:
@@ -179,13 +183,13 @@ public class MainActivity extends AppCompatActivity {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-                Log.d("emotion", String.valueOf(sensorDic));
+                Log.d(TAG, "SensorDic " + String.valueOf(sensorDic));
                 mainSensorArray.add(sensorDic);
             }
 
             @Override
             public void onAccuracyChanged(Sensor sensor, int i) {
-                Log.d("emotion", sensor.toString());
+                Log.d(TAG, "sensor " + sensor.toString());
 
             }
         };
@@ -194,8 +198,7 @@ public class MainActivity extends AppCompatActivity {
         assert btn != null;
         textureView = findViewById(R.id.textureview);
         reddot = findViewById(R.id.imageView2);
-        int imageResource = getResources().getIdentifier("@drawable/reddot","drawable",getPackageName());
-        Log.d("int", String.valueOf(imageResource));
+        int imageResource = getResources().getIdentifier("@drawable/reddot", "drawable", getPackageName());
         reddot.setImageResource(imageResource);
 
         Toast.makeText(MainActivity.this, "Tap to start App.", Toast.LENGTH_LONG).show();
@@ -203,17 +206,22 @@ public class MainActivity extends AppCompatActivity {
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.d("bool", String.valueOf(mstartRecording));
-                onRecord(mstartRecording);
+
+                Log.d(TAG, "mstartRecording " + mstartRecording);
+//                onRecord(mstartRecording);
+
                 if (mstartRecording) {
-                    Toast.makeText(MainActivity.this, "Now Stop Recording.", Toast.LENGTH_SHORT).show();
                     reddot.setVisibility(View.INVISIBLE);
+                    stopRecording();
+                    stopSensor();
 
                 } else {
-
-                    Toast.makeText(MainActivity.this, "Now Start Recording.", Toast.LENGTH_SHORT).show();
                     reddot.setVisibility(View.VISIBLE);
+                    setUpRecord();
+                    startRecording();
+                    startSensor();
                 }
+
             }
 
         });
@@ -224,26 +232,23 @@ public class MainActivity extends AppCompatActivity {
     private void onRecord(boolean isRecording) {
         if (isRecording) {
             stopRecording();
-//            stopSensor();
-            Log.d("record", "stop");
+            stopSensor();
+//            Toast.makeText(MainActivity.this, "Now Stop Recording.", Toast.LENGTH_SHORT).show();
         } else {
-            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault());
-            fileName = getExternalFilesDir(Environment.DIRECTORY_PICTURES).getAbsolutePath() + "/" + simpleDateFormat.format(new Date());
+//            fileName = getExternalFilesDir(Environment.DIRECTORY_PICTURES).getAbsolutePath() + "/"+ACTION + simpleDateFormat.format(new Date());
             setUpRecord();
             startRecording();
-
+            startSensor();
+//            Toast.makeText(MainActivity.this, "Now Start Recording.", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private CameraDevice cameraDevice;
 
     private final CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
         @Override
         public void onOpened(CameraDevice camera) {
-            //This is called when the camera is open
             Log.e("camera", "onOpened");
             cameraDevice = camera;
-//            createCameraPreview();
         }
 
         @Override
@@ -256,14 +261,12 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onError(CameraDevice camera, int error) {
-            Log.e("camera", "oERROR");
+            Log.e("camera", "onERROR" + error);
 
             cameraDevice.close();
             cameraDevice = null;
         }
-
     };
-
 
     private Size chooseVideoSize(Size[] choices) {
         for (Size size : choices) {
@@ -297,9 +300,28 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void setUpRecord() {
+        if (recorder == null) {
+            recorder = new MediaRecorder();
+        }
+        recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        recorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
+
+        CamcorderProfile cpHigh = CamcorderProfile.get(CamcorderProfile.QUALITY_LOW);
+        recorder.setProfile(cpHigh);
+        String fileName = getFilePath();
+        recorder.setOutputFile(fileName + ".3gp");
+
+        try {
+            recorder.prepare();
+            Log.d(TAG, "recorder prepared");
+        } catch (IOException e) {
+        }
+    }
+
     private void startRecording() {
         SurfaceTexture texture = textureView.getSurfaceTexture();
-//        assert texture != null;
+        assert texture != null;
         texture.setDefaultBufferSize(imageDimension.getWidth(), imageDimension.getHeight());
 
         try {
@@ -315,14 +337,15 @@ public class MainActivity extends AppCompatActivity {
 
         surfaces.add(recorderSurface);
         previewRequestBuilder.addTarget(recorderSurface);
-//        previewRequestBuilder.addTarget(previewSurface);
+        previewRequestBuilder.addTarget(previewSurface);
         try {
             cameraDevice.createCaptureSession(surfaces, new CameraCaptureSession.StateCallback() {
+                //            cameraDevice.createCaptureSession((List<Surface>) recorderSurface, new CameraCaptureSession.StateCallback() {
                 @Override
                 public void onConfigured(CameraCaptureSession cameraCaptureSession) {
                     cameraPrewSession = cameraCaptureSession;
                     try {
-                        cameraPrewSession.setRepeatingRequest(previewRequestBuilder.build(), null, cameraHandler);
+                        cameraPrewSession.setRepeatingRequest(previewRequestBuilder.build(), null, null);
                     } catch (CameraAccessException e) {
                         e.printStackTrace();
                     }
@@ -340,7 +363,7 @@ public class MainActivity extends AppCompatActivity {
                 public void onConfigureFailed(CameraCaptureSession cameraCaptureSession) {
                     Toast.makeText(MainActivity.this, "Failed", Toast.LENGTH_SHORT).show();
                 }
-            }, cameraHandler);
+            }, null);//cameraHandler
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -349,20 +372,32 @@ public class MainActivity extends AppCompatActivity {
 
     private void stopRecording() {
         mstartRecording = false;
-        try {
-            cameraPrewSession.stopRepeating();
-            cameraPrewSession.abortCaptures();
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
+        if (cameraDevice != null && cameraPrewSession != null) {
+            try {
+                cameraPrewSession.stopRepeating();
+//                cameraPrewSession.abortCaptures();
+            } catch (CameraAccessException e) {
+                e.printStackTrace();
+            }
         }
-        if(null!= recorder){
-            recorder.stop();
-            recorder = null;
-        }
+        Timer timer = new Timer();
+        TimerTask timerTask = new TimerTask() {
+            @Override
+            public void run() {
+                if (null != recorder) {
+                    recorder.stop();
+                    recorder.reset();    // set state to idle
+                    recorder.release();
+                    recorder = null;
+                }
+            }
+        };
+        timer.schedule(timerTask,30);
 
     }
 
     private void openCamera() {
+        Log.d(TAG, "openCamera");
         CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         try {
             assert manager != null;
@@ -392,71 +427,61 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private void setUpRecord() {
-        if (recorder == null) {
-            recorder = new MediaRecorder();
+    TextureView.SurfaceTextureListener textureListener = new TextureView.SurfaceTextureListener() {
+        @Override
+        public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
+            openCamera();
         }
-        recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-        recorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
 
-        CamcorderProfile cpHigh = CamcorderProfile.get(CamcorderProfile.QUALITY_LOW);
-        recorder.setProfile(cpHigh);
-        String fileName = getFilePath();
-        recorder.setOutputFile(fileName + ".3gp");
-
-        try {
-            recorder.prepare();
-        } catch (IOException e) {
+        @Override
+        public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+            // Transform you image captured size according to the surface width and height
         }
-    }
+
+        @Override
+        public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+            return false;
+        }
+
+        @Override
+        public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+        }
+    };
 
     private String getFilePath() {
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault());
-        fileName = getExternalFilesDir(Environment.DIRECTORY_PICTURES).getAbsolutePath() + "/" + simpleDateFormat.format(new Date());
-
-
-        Log.i("path", fileName);
-
+        fileName = getExternalFilesDir(Environment.DIRECTORY_PICTURES).getAbsolutePath() + "/" + ACTION + simpleDateFormat.format(new Date());
+        Log.i(TAG, "path " + fileName);
         return fileName;
     }
 
-
     @Override
-    public void onStop() {
-        super.onStop();
-        if (recorder != null) {
-            recorder.stop();
-            recorder.release();
-
-            recorder = null;
-
-        }
-
-
-        if (player != null) {
-            player.release();
-            player = null;
-        }
+    public void onDestroy() {
+        super.onDestroy();
+        Log.d(TAG, "onDestroy");
+        closeCamera();
+        sensorManager.unregisterListener(sensorEventListener);
     }
+
 
     @Override
     protected void onPause() {
         super.onPause();
-        closeCamera();
+
+        Log.d(TAG, "onPause");
         stopThread();
-        // unregister listener
-        sensorManager.unregisterListener(sensorEventListener);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        Log.d(TAG, "onResume");
         startThread();
         if (textureView.isAvailable()) {
+            Log.d(TAG,"onResuem textureView is Available");
             openCamera();
+        } else {
+            textureView.setSurfaceTextureListener(textureListener);
         }
-        //KNOWN SENSOR Available
-
 
     }
 
@@ -548,7 +573,8 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void startSensor(String fileName) {
+    private void startSensor() {
+        String fileName = getFilePath();
         // register this class as a listener for the gyroscope sensor
         sensorManager.registerListener(sensorEventListener,
                 sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
@@ -587,6 +613,5 @@ public class MainActivity extends AppCompatActivity {
 
     private void stopSensor() {
         sensorManager.unregisterListener(sensorEventListener);
-
     }
 }

@@ -22,19 +22,23 @@
     <TextureView
         android:id="@+id/textureview"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:background="@color/hud_red" />
+
     <ImageView
         android:id="@+id/imageView2"
         android:layout_width="54dp"
         android:layout_height="54dp"
         android:layout_alignParentTop="true"
         android:layout_alignParentRight="true"
+        android:layout_marginTop="5dp"
+        android:layout_marginRight="2dp"
         android:visibility="invisible" />
+
     <Button
         android:id="@+id/button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Button"
         android:layout_alignParentBottom='true'
         android:layout_centerHorizontal="true"
         android:layout_marginTop="16dp"

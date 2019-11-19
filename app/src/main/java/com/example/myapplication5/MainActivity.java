@@ -95,7 +95,7 @@ public class MainActivity extends ActionMenuActivity {
 
     //    private RecordButton recordButton = null;
     private static final String TAG = "Thesis";
-    private static final String ACTION = "Drink_";
+    private static final String ACTION = "TEST_";
     private boolean mstartRecording = false;
 
     //    private PlayButton   playButton = null;
@@ -420,6 +420,7 @@ public class MainActivity extends ActionMenuActivity {
     }
 
     private void closeCamera() {
+        closePreviewSession();
         if (cameraDevice != null) {
             cameraDevice.close();
             cameraDevice = null;
@@ -466,16 +467,16 @@ public class MainActivity extends ActionMenuActivity {
     @Override
     protected void onPause() {
         super.onPause();
-
+        closeCamera();
         Log.d(TAG, "onPause");
-        stopThread();
+//        stopThread();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         Log.d(TAG, "onResume");
-        startThread();
+//        startThread();
         if (textureView.isAvailable()) {
             Log.d(TAG,"onResuem textureView is Available");
             openCamera();
@@ -485,6 +486,12 @@ public class MainActivity extends ActionMenuActivity {
 
     }
 
+    private void closePreviewSession() {
+        if (cameraPrewSession != null) {
+            cameraPrewSession.close();
+            cameraPrewSession = null;
+        }
+    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {

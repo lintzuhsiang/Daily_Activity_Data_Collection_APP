@@ -99,7 +99,6 @@ public class MainActivity extends ActionMenuActivity {
     private boolean mstartRecording = false;
 
     //    private PlayButton   playButton = null;
-    private Handler timerHandler = new Handler();
     // Requesting permission to RECORD_AUDIO
     private boolean permissionToRecordAccepted = false;
     private String[] permissions = {Manifest.permission.RECORD_AUDIO};
@@ -118,9 +117,18 @@ public class MainActivity extends ActionMenuActivity {
     private CameraDevice cameraDevice;
     SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault());
 
+    private Handler timerHandler = new Handler();
+    private Handler handler = new Handler();
+    private Runnable runnableCode = new Runnable() {
+        @Override
+        public void run() {
+
+        }
+    };
+
     @Override
-    public void onCreate(Bundle icicle) {
-        super.onCreate(icicle);
+    public void onCreate(Bundle bundle) {
+        super.onCreate(bundle);
         setContentView(R.layout.activity_main);
 
         ActivityCompat.requestPermissions(this, permissions, REQUEST_RECORD_AUDIO_PERMISSION);
@@ -201,6 +209,7 @@ public class MainActivity extends ActionMenuActivity {
         int imageResource = getResources().getIdentifier("@drawable/reddot", "drawable", getPackageName());
         reddot.setImageResource(imageResource);
 
+
         Toast.makeText(MainActivity.this, "Tap to start App.", Toast.LENGTH_LONG).show();
 
         btn.setOnClickListener(new View.OnClickListener() {
@@ -214,11 +223,13 @@ public class MainActivity extends ActionMenuActivity {
                     reddot.setVisibility(View.INVISIBLE);
                     stopRecording();
                     stopSensor();
+                    handler.removeCallbacks(runnableCode);
 
                 } else {
                     reddot.setVisibility(View.VISIBLE);
                     setUpRecord();
                     startRecording();
+                    initSensor();
                     startSensor();
                 }
 
@@ -355,6 +366,8 @@ public class MainActivity extends ActionMenuActivity {
                         public void run() {
                             mstartRecording = true;
                             recorder.start();
+
+
                         }
                     });
                 }
@@ -392,7 +405,7 @@ public class MainActivity extends ActionMenuActivity {
                 }
             }
         };
-        timer.schedule(timerTask,30);
+        timer.schedule(timerTask, 30);
 
     }
 
@@ -478,7 +491,7 @@ public class MainActivity extends ActionMenuActivity {
         Log.d(TAG, "onResume");
 //        startThread();
         if (textureView.isAvailable()) {
-            Log.d(TAG,"onResuem textureView is Available");
+            Log.d(TAG, "onResuem textureView is Available");
             openCamera();
         } else {
             textureView.setSurfaceTextureListener(textureListener);
@@ -563,9 +576,7 @@ public class MainActivity extends ActionMenuActivity {
     private void writeFileToExternalStorage() {
 
         try {
-
             saveFile.createNewFile();
-
             FileOutputStream outputStream = new FileOutputStream(saveFile);
             outputStream.write(mainSensorArray.toString().getBytes());
 
@@ -580,8 +591,7 @@ public class MainActivity extends ActionMenuActivity {
 
     }
 
-    private void startSensor() {
-        String fileName = getFilePath();
+    private void initSensor() {
         // register this class as a listener for the gyroscope sensor
         sensorManager.registerListener(sensorEventListener,
                 sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
@@ -608,9 +618,29 @@ public class MainActivity extends ActionMenuActivity {
                 sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE),
                 SensorManager.SENSOR_DELAY_NORMAL);
 
+    }
+
+    private void startSensor() {
+
+        runnableCode = new Runnable() {
+            @Override
+            public void run() {
+                Log.d("Runnable","RUN");
+                String fileName = getFilePath();
+                saveFile = new File(fileName + ".json");
+                if (isExternalStorageWritable()) {
+                    writeFileToExternalStorage();
+                }
+//            filesavetimestamp = System.currentTimeMillis();
+                handler.postDelayed(this, 3000);
+            }
+        };
+        handler.post(runnableCode);
+
+
+
         if (System.currentTimeMillis() - filesavetimestamp > 3000) {  //save every 3 seconds
-            saveFile = new File(fileName + ".json");
-            Log.d("startSensor", saveFile.getAbsolutePath());
+//            Log.d("startSensor", saveFile.getAbsolutePath());
             if (isExternalStorageWritable()) {
                 writeFileToExternalStorage();
             }

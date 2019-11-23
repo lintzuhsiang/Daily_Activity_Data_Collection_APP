@@ -1,6 +1,7 @@
 import json
+import sys
 import matplotlib.pyplot as plt
-with open("1573348918599.json") as json_file:
+with open(sys.argv[1]) as json_file:
     datas = json.load(json_file)
 
 accelerometer = {}
@@ -54,7 +55,7 @@ for time,value in accelerometer.items():
 labels = ['gyro','mag','light','pressure','acc']
 ax.set_xlabel('Time')
 ax.set_ylabel('Value')
-ax.set_title('Sensor Data')
+ax.set_title(sys.argv[2])
 ax.grid(True)
 # x = np.arange(0,15,1)
 # y = np.sin(x)

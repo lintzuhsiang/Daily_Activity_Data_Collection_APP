@@ -20,10 +20,14 @@ import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.media.CamcorderProfile;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -50,6 +54,8 @@ import android.hardware.SensorManager;
 import android.widget.Toast;
 
 
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationRequest;
 import com.vuzix.hud.actionmenu.ActionMenuActivity;
 
 import org.json.JSONException;
@@ -80,10 +86,15 @@ public class MainActivity extends ActionMenuActivity {
     public static long timestamp = System.currentTimeMillis();
     public static long filesavetimestamp = System.currentTimeMillis();
     public JSONObject sensorDic;
+    public JSONObject gpsDic;
+    public JSONObject gpsValue;
     public ArrayList<JSONObject> mainSensorArray = new ArrayList<>();
+    public ArrayList<JSONObject> gpsArray = new ArrayList<>();
+
 
     private Button btn;
-    private File saveFile;
+    private File sensorFile;
+    private File gpsFile;
     private Button takePictureButton;
     private TextView textView;
     private static final String LOG_TAG = "AudioRecordTest";
@@ -126,6 +137,10 @@ public class MainActivity extends ActionMenuActivity {
         }
     };
 
+
+    private LocationManager locationManager;
+    private LocationListener locationListener;
+
     @Override
     public void onCreate(Bundle bundle) {
         super.onCreate(bundle);
@@ -133,6 +148,57 @@ public class MainActivity extends ActionMenuActivity {
 
         ActivityCompat.requestPermissions(this, permissions, REQUEST_RECORD_AUDIO_PERMISSION);
 
+//        googleApiClient = new GoogleApiClient.Builder(this)
+
+        locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        locationListener = new LocationListener() {
+            @Override
+            public void onLocationChanged(Location location) {
+                gpsDic = new JSONObject();
+                gpsValue = new JSONObject();
+                try {
+                    gpsDic.put("time", System.currentTimeMillis() - timestamp);
+                    gpsValue.put("longtitude", location.getLongitude());
+                    gpsValue.put("langtitude", location.getLatitude());
+                    gpsValue.put("speed",location.getSpeed());
+                    gpsDic.put("value", gpsValue);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                Log.d(TAG, String.valueOf(location.getLatitude()));
+                Log.d(TAG, String.valueOf(location.getLongitude()));
+                Log.d(TAG, String.valueOf(location.getLongitude()));
+                gpsArray.add(gpsDic);
+            }
+
+            @Override
+            public void onStatusChanged(String provider, int status, Bundle extras) {
+
+            }
+
+            @Override
+            public void onProviderEnabled(String provider) {
+
+            }
+
+            @Override
+            public void onProviderDisabled(String provider) {
+
+            }
+        };
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    Activity#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for Activity#requestPermissions for more details.
+                return;
+            }
+        }
+        locationManager.requestLocationUpdates("gps", 1000, (float) 0.01, locationListener);
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         sensorEventListener = new SensorEventListener() {
             @Override
@@ -146,32 +212,41 @@ public class MainActivity extends ActionMenuActivity {
                 }
 
                 JSONObject sensorValue = new JSONObject();
-                Log.d(TAG, "sensor get stringType" + sensorEvent.sensor.getStringType());
+//                Log.d(TAG, "sensor get stringType: " + sensorEvent.sensor.getStringType());
                 switch (sensorEvent.sensor.getStringType()) {
-
                     case Sensor.STRING_TYPE_ACCELEROMETER:
                         try {
-                            sensorValue.put("accelerometer", sensorEvent.values[0]);
+//                            sensorValue.put("accelerometer",System.currentTimeMillis()-timestamp);
+                            sensorValue.put("accelerometer_x", sensorEvent.values[0]);
+                            sensorValue.put("accelerometer_y", sensorEvent.values[1]);
+                            sensorValue.put("accelerometer_z", sensorEvent.values[2]);
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
                         break;
                     case Sensor.STRING_TYPE_MAGNETIC_FIELD:
                         try {
-                            sensorValue.put("magnetic", sensorEvent.values[0]);
+//                            sensorValue.put("magnetic",System.currentTimeMillis()-timestamp);
+                            sensorValue.put("magnetic_x", sensorEvent.values[0]);
+                            sensorValue.put("magnetic_y", sensorEvent.values[1]);
+                            sensorValue.put("magnetic_z", sensorEvent.values[2]);
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
                         break;
                     case Sensor.STRING_TYPE_GYROSCOPE:
                         try {
-                            sensorValue.put("gyroscope", sensorEvent.values[0]);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
+//                            sensorValue.put("gyroscope",System.currentTimeMillis()-timestamp);
+                            sensorValue.put("gyroscope_x", sensorEvent.values[0]);
+                            sensorValue.put("gyroscope_y", sensorEvent.values[1]);
+                            sensorValue.put("gyroscope_z", sensorEvent.values[2]);
+                        } catch (JSONException ex) {
+                            ex.printStackTrace();
                         }
                         break;
                     case Sensor.STRING_TYPE_LIGHT:
                         try {
+//                            sensorValue.put("light",System.currentTimeMillis()-timestamp);
                             sensorValue.put("light", sensorEvent.values[0]);
                         } catch (JSONException e) {
                             e.printStackTrace();
@@ -179,20 +254,102 @@ public class MainActivity extends ActionMenuActivity {
                         break;
                     case Sensor.STRING_TYPE_PRESSURE:
                         try {
+//                            sensorValue.put("pressure",System.currentTimeMillis()-timestamp);
                             sensorValue.put("pressure", sensorEvent.values[0]);
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
                         break;
+                    case Sensor.STRING_TYPE_GRAVITY:
+                        try {
+                            sensorValue.put("gravity", sensorEvent.values[2]);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        break;
+                    case Sensor.STRING_TYPE_ROTATION_VECTOR:
+                        try {
+                            sensorValue.put("Rotation vector", sensorEvent.values[0]);
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    case Sensor.STRING_TYPE_LINEAR_ACCELERATION:
+                        try {
+                            sensorValue.put("Linear Acceleration", sensorEvent.values[0]);
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    case Sensor.STRING_TYPE_POSE_6DOF:
+                        try {
+                            sensorValue.put("POSE 6DOF", sensorEvent.values[0]);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+
+                    case Sensor.STRING_TYPE_STEP_COUNTER:
+                        try {
+                            sensorValue.put("STEP COUNTER", sensorEvent.values[0]);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    case Sensor.STRING_TYPE_PROXIMITY:
+                        try {
+                            sensorValue.put("Proximity", sensorEvent.values[0]);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    case Sensor.STRING_TYPE_AMBIENT_TEMPERATURE:
+                        try {
+                            sensorValue.put("Temerature", sensorEvent.values[0]);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    case Sensor.STRING_TYPE_GAME_ROTATION_VECTOR:
+                        try {
+                            sensorValue.put("Rotation", sensorEvent.values[0]);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    case Sensor.STRING_TYPE_LOW_LATENCY_OFFBODY_DETECT:
+                        try {
+                            sensorValue.put("Offbody", sensorEvent.values[0]);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    case Sensor.STRING_TYPE_MOTION_DETECT:
+                        try {
+                            sensorValue.put("Motion", sensorEvent.values[0]);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    case Sensor.STRING_TYPE_STATIONARY_DETECT:
+                        try {
+                            sensorValue.put("Stationary", sensorEvent.values[0]);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    case Sensor.STRING_TYPE_STEP_DETECTOR:
+                        try {
+                            sensorValue.put("STEP_DETECTOR", sensorEvent.values[0]);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+
 
                 }
                 try {
                     sensorDic.put("value", sensorValue);
-                } catch (JSONException e) {
+//                    sensorValue.put("time",sensorDic);
+                } catch (
+                        JSONException e) {
                     e.printStackTrace();
                 }
                 Log.d(TAG, "SensorDic " + String.valueOf(sensorDic));
+                Log.d(TAG, "SensorValue: " + sensorValue);
                 mainSensorArray.add(sensorDic);
+//                mainSensorArray.add(sensorValue);
             }
 
             @Override
@@ -205,7 +362,9 @@ public class MainActivity extends ActionMenuActivity {
         btn = findViewById(R.id.button);
         assert btn != null;
         textureView = findViewById(R.id.textureview);
+
         reddot = findViewById(R.id.imageView2);
+
         int imageResource = getResources().getIdentifier("@drawable/reddot", "drawable", getPackageName());
         reddot.setImageResource(imageResource);
 
@@ -229,6 +388,7 @@ public class MainActivity extends ActionMenuActivity {
                     reddot.setVisibility(View.VISIBLE);
                     setUpRecord();
                     startRecording();
+
                     initSensor();
                     startSensor();
                 }
@@ -318,7 +478,7 @@ public class MainActivity extends ActionMenuActivity {
         recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         recorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
 
-        CamcorderProfile cpHigh = CamcorderProfile.get(CamcorderProfile.QUALITY_LOW);
+        CamcorderProfile cpHigh = CamcorderProfile.get(CamcorderProfile.QUALITY_720P);
         recorder.setProfile(cpHigh);
         String fileName = getFilePath();
         recorder.setOutputFile(fileName + ".3gp");
@@ -509,8 +669,6 @@ public class MainActivity extends ActionMenuActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        Log.d("ee", String.valueOf(requestCode));
-        Log.d("ee", String.valueOf(PackageManager.PERMISSION_GRANTED));
 
         switch (requestCode) {
             case REQUEST_RECORD_AUDIO_PERMISSION:
@@ -535,19 +693,7 @@ public class MainActivity extends ActionMenuActivity {
         }
 
     }
-//    private String strVideoPath = "";
-//    @Override
-//    protected void onActivityResult(int requestCode, int resultCode,Intent data){
-//        super.onActivityResult(requestCode,resultCode,data);
-//        if (resultCode==RESULT_OK){
-//            Uri uriVideo = data.getData();
-//            Cursor cursor = this.getContentResolver().query(uriVideo,null,null,null,null);
-//            if(cursor.moveToNext()){
-//                strVideoPath = cursor.getString(cursor.getColumnIndex("_data"));
-//                Toast.makeText(this, strVideoPath, Toast.LENGTH_SHORT).show();
-//            }
-//        }
-//    }
+
 
     public void startThread() {
         backgroundThread = new HandlerThread("Camera2");
@@ -576,12 +722,20 @@ public class MainActivity extends ActionMenuActivity {
     private void writeFileToExternalStorage() {
 
         try {
-            saveFile.createNewFile();
-            FileOutputStream outputStream = new FileOutputStream(saveFile);
+            sensorFile.createNewFile();
+            gpsFile.createNewFile();
+            FileOutputStream outputStream = new FileOutputStream(sensorFile);
             outputStream.write(mainSensorArray.toString().getBytes());
 
             outputStream.flush();
             outputStream.close();
+
+            FileOutputStream outputStream2 = new FileOutputStream(gpsFile);
+            outputStream2.write(gpsArray.toString().getBytes());
+
+            outputStream2.flush();
+            outputStream2.close();
+
             Log.d("emotion", "File saved");
         } catch (Exception ex) {
 
@@ -592,63 +746,78 @@ public class MainActivity extends ActionMenuActivity {
     }
 
     private void initSensor() {
-        // register this class as a listener for the gyroscope sensor
+//        // register this class as a listener for the gyroscope sensor
         sensorManager.registerListener(sensorEventListener,
                 sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
-                SensorManager.SENSOR_DELAY_NORMAL);
+                SensorManager.SENSOR_DELAY_FASTEST);
 
         // register this class as a listener for the gyroscope sensor
         sensorManager.registerListener(sensorEventListener,
                 sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-                SensorManager.SENSOR_DELAY_NORMAL);
+                SensorManager.SENSOR_DELAY_FASTEST);
 
 
         // register this class as a listener for the gyroscope sensor
         sensorManager.registerListener(sensorEventListener,
                 sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),
-                SensorManager.SENSOR_DELAY_NORMAL);
+                SensorManager.SENSOR_DELAY_FASTEST);
 
         // register this class as a listener for the gyroscope sensor
         sensorManager.registerListener(sensorEventListener,
                 sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT),
-                SensorManager.SENSOR_DELAY_NORMAL);
+                SensorManager.SENSOR_DELAY_FASTEST);
 
         // register this class as a listener for the gyroscope sensor
         sensorManager.registerListener(sensorEventListener,
+                sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
+                SensorManager.SENSOR_DELAY_FASTEST);
+
+        sensorManager.registerListener(sensorEventListener,
                 sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE),
-                SensorManager.SENSOR_DELAY_NORMAL);
+                SensorManager.SENSOR_DELAY_FASTEST);
 
     }
 
     private void startSensor() {
 
-        runnableCode = new Runnable() {
-            @Override
-            public void run() {
-                Log.d("Runnable","RUN");
-                String fileName = getFilePath();
-                saveFile = new File(fileName + ".json");
-                if (isExternalStorageWritable()) {
-                    writeFileToExternalStorage();
-                }
+//        runnableCode = new Runnable() {
+//            @Override
+//            public void run() {
+//                Log.d("Runnable", "RUN");
+//                String fileName = getFilePath();
+//                sensorFile = new File(fileName + "_sensor.json");
+//                gpsFile = new File(fileName+"_gps.json");
+//                if (isExternalStorageWritable()) {
+//                    writeFileToExternalStorage();
+//                }
+////            filesavetimestamp = System.currentTimeMillis();
+//                handler.postDelayed(this, 3000);
+//            }
+//        };
+//        handler.post(runnableCode);
+//
+//
+//        if (System.currentTimeMillis() - filesavetimestamp > 3000) {  //save every 3 seconds
+////            Log.d("startSensor", saveFile.getAbsolutePath());
+//            if (isExternalStorageWritable()) {
+//                writeFileToExternalStorage();
+//            }
 //            filesavetimestamp = System.currentTimeMillis();
-                handler.postDelayed(this, 3000);
-            }
-        };
-        handler.post(runnableCode);
+//        }
+
+        String fileName = getFilePath();
+        sensorFile = new File(fileName + "_sensor.json");
+        gpsFile = new File(fileName + "_gps.json");
 
 
-
-        if (System.currentTimeMillis() - filesavetimestamp > 3000) {  //save every 3 seconds
-//            Log.d("startSensor", saveFile.getAbsolutePath());
-            if (isExternalStorageWritable()) {
-                writeFileToExternalStorage();
-            }
-            filesavetimestamp = System.currentTimeMillis();
-        }
     }
 
     private void stopSensor() {
+        if (isExternalStorageWritable()) {
+            writeFileToExternalStorage();
+        }
         sensorManager.unregisterListener(sensorEventListener);
+        mainSensorArray = new ArrayList<>();
+        gpsArray = new ArrayList<>();
     }
 }

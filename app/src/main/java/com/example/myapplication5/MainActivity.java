@@ -80,8 +80,8 @@ import java.util.TimerTask;
 public class MainActivity extends ActionMenuActivity {
     public SimpleDateFormat DateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault());
 
-    private SensorManager sensorManager;
-    private SensorEventListener sensorEventListener;
+
+
 
     public static long timestamp = System.currentTimeMillis();
     public static long filesavetimestamp = System.currentTimeMillis();
@@ -139,7 +139,200 @@ public class MainActivity extends ActionMenuActivity {
 
 
     private LocationManager locationManager;
-    private LocationListener locationListener;
+    private LocationListener locationListener = new LocationListener() {
+        @Override
+        public void onLocationChanged(Location location) {
+            gpsDic = new JSONObject();
+            gpsValue = new JSONObject();
+            try {
+                gpsDic.put("time", System.currentTimeMillis() - timestamp);
+                gpsValue.put("longtitude", location.getLongitude());
+                gpsValue.put("langtitude", location.getLatitude());
+                gpsValue.put("speed",location.getSpeed());
+                gpsDic.put("value", gpsValue);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            Log.d(TAG, String.valueOf(location.getLatitude()));
+            Log.d(TAG, String.valueOf(location.getLongitude()));
+            Log.d(TAG, String.valueOf(location.getLongitude()));
+            gpsArray.add(gpsDic);
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+
+        }
+    };
+    private SensorManager sensorManager;
+    private SensorEventListener sensorEventListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent sensorEvent) {
+            sensorDic = new JSONObject();
+            try {
+                sensorDic.put("time", System.currentTimeMillis() - timestamp);
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+            JSONObject sensorValue = new JSONObject();
+//                Log.d(TAG, "sensor get stringType: " + sensorEvent.sensor.getStringType());
+            switch (sensorEvent.sensor.getStringType()) {
+                case Sensor.STRING_TYPE_ACCELEROMETER:
+                    try {
+//                            sensorValue.put("accelerometer",System.currentTimeMillis()-timestamp);
+                        sensorValue.put("accelerometer_x", sensorEvent.values[0]);
+                        sensorValue.put("accelerometer_y", sensorEvent.values[1]);
+                        sensorValue.put("accelerometer_z", sensorEvent.values[2]);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                case Sensor.STRING_TYPE_MAGNETIC_FIELD:
+                    try {
+//                            sensorValue.put("magnetic",System.currentTimeMillis()-timestamp);
+                        sensorValue.put("magnetic_x", sensorEvent.values[0]);
+                        sensorValue.put("magnetic_y", sensorEvent.values[1]);
+                        sensorValue.put("magnetic_z", sensorEvent.values[2]);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                case Sensor.STRING_TYPE_GYROSCOPE:
+                    try {
+//                            sensorValue.put("gyroscope",System.currentTimeMillis()-timestamp);
+                        sensorValue.put("gyroscope_x", sensorEvent.values[0]);
+                        sensorValue.put("gyroscope_y", sensorEvent.values[1]);
+                        sensorValue.put("gyroscope_z", sensorEvent.values[2]);
+                    } catch (JSONException ex) {
+                        ex.printStackTrace();
+                    }
+                    break;
+                case Sensor.STRING_TYPE_LIGHT:
+                    try {
+//                            sensorValue.put("light",System.currentTimeMillis()-timestamp);
+                        sensorValue.put("light", sensorEvent.values[0]);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                case Sensor.STRING_TYPE_PRESSURE:
+                    try {
+//                            sensorValue.put("pressure",System.currentTimeMillis()-timestamp);
+                        sensorValue.put("pressure", sensorEvent.values[0]);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                case Sensor.STRING_TYPE_GRAVITY:
+                    try {
+                        sensorValue.put("gravity", sensorEvent.values[2]);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                case Sensor.STRING_TYPE_ROTATION_VECTOR:
+                    try {
+                        sensorValue.put("Rotation vector", sensorEvent.values[0]);
+
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                case Sensor.STRING_TYPE_LINEAR_ACCELERATION:
+                    try {
+                        sensorValue.put("Linear Acceleration", sensorEvent.values[0]);
+
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                case Sensor.STRING_TYPE_POSE_6DOF:
+                    try {
+                        sensorValue.put("POSE 6DOF", sensorEvent.values[0]);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
+                case Sensor.STRING_TYPE_STEP_COUNTER:
+                    try {
+                        sensorValue.put("STEP COUNTER", sensorEvent.values[0]);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                case Sensor.STRING_TYPE_PROXIMITY:
+                    try {
+                        sensorValue.put("Proximity", sensorEvent.values[0]);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                case Sensor.STRING_TYPE_AMBIENT_TEMPERATURE:
+                    try {
+                        sensorValue.put("Temerature", sensorEvent.values[0]);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                case Sensor.STRING_TYPE_GAME_ROTATION_VECTOR:
+                    try {
+                        sensorValue.put("Rotation", sensorEvent.values[0]);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                case Sensor.STRING_TYPE_LOW_LATENCY_OFFBODY_DETECT:
+                    try {
+                        sensorValue.put("Offbody", sensorEvent.values[0]);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                case Sensor.STRING_TYPE_MOTION_DETECT:
+                    try {
+                        sensorValue.put("Motion", sensorEvent.values[0]);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                case Sensor.STRING_TYPE_STATIONARY_DETECT:
+                    try {
+                        sensorValue.put("Stationary", sensorEvent.values[0]);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                case Sensor.STRING_TYPE_STEP_DETECTOR:
+                    try {
+                        sensorValue.put("STEP_DETECTOR", sensorEvent.values[0]);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
+
+            }
+            try {
+                sensorDic.put("value", sensorValue);
+//                    sensorValue.put("time",sensorDic);
+            } catch (
+                    JSONException e) {
+                e.printStackTrace();
+            }
+//            Log.d(TAG, "SensorDic " + String.valueOf(sensorDic));
+//            Log.d(TAG, "SensorValue: " + sensorValue);
+            mainSensorArray.add(sensorDic);
+//                mainSensorArray.add(sensorValue);
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int i) {
+            Log.d(TAG, "sensor " + sensor.toString());
+
+        }
+    };
 
     @Override
     public void onCreate(Bundle bundle) {
@@ -148,44 +341,8 @@ public class MainActivity extends ActionMenuActivity {
 
         ActivityCompat.requestPermissions(this, permissions, REQUEST_RECORD_AUDIO_PERMISSION);
 
-//        googleApiClient = new GoogleApiClient.Builder(this)
-
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        locationListener = new LocationListener() {
-            @Override
-            public void onLocationChanged(Location location) {
-                gpsDic = new JSONObject();
-                gpsValue = new JSONObject();
-                try {
-                    gpsDic.put("time", System.currentTimeMillis() - timestamp);
-                    gpsValue.put("longtitude", location.getLongitude());
-                    gpsValue.put("langtitude", location.getLatitude());
-                    gpsValue.put("speed",location.getSpeed());
-                    gpsDic.put("value", gpsValue);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                Log.d(TAG, String.valueOf(location.getLatitude()));
-                Log.d(TAG, String.valueOf(location.getLongitude()));
-                Log.d(TAG, String.valueOf(location.getLongitude()));
-                gpsArray.add(gpsDic);
-            }
 
-            @Override
-            public void onStatusChanged(String provider, int status, Bundle extras) {
-
-            }
-
-            @Override
-            public void onProviderEnabled(String provider) {
-
-            }
-
-            @Override
-            public void onProviderDisabled(String provider) {
-
-            }
-        };
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 // TODO: Consider calling
@@ -203,164 +360,7 @@ public class MainActivity extends ActionMenuActivity {
         locationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, 0, 0, locationListener);
 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        sensorEventListener = new SensorEventListener() {
-            @Override
-            public void onSensorChanged(SensorEvent sensorEvent) {
-                sensorDic = new JSONObject();
-                try {
-                    sensorDic.put("time", System.currentTimeMillis() - timestamp);
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-
-                JSONObject sensorValue = new JSONObject();
-//                Log.d(TAG, "sensor get stringType: " + sensorEvent.sensor.getStringType());
-                switch (sensorEvent.sensor.getStringType()) {
-                    case Sensor.STRING_TYPE_ACCELEROMETER:
-                        try {
-//                            sensorValue.put("accelerometer",System.currentTimeMillis()-timestamp);
-                            sensorValue.put("accelerometer_x", sensorEvent.values[0]);
-                            sensorValue.put("accelerometer_y", sensorEvent.values[1]);
-                            sensorValue.put("accelerometer_z", sensorEvent.values[2]);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                        break;
-                    case Sensor.STRING_TYPE_MAGNETIC_FIELD:
-                        try {
-//                            sensorValue.put("magnetic",System.currentTimeMillis()-timestamp);
-                            sensorValue.put("magnetic_x", sensorEvent.values[0]);
-                            sensorValue.put("magnetic_y", sensorEvent.values[1]);
-                            sensorValue.put("magnetic_z", sensorEvent.values[2]);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                        break;
-                    case Sensor.STRING_TYPE_GYROSCOPE:
-                        try {
-//                            sensorValue.put("gyroscope",System.currentTimeMillis()-timestamp);
-                            sensorValue.put("gyroscope_x", sensorEvent.values[0]);
-                            sensorValue.put("gyroscope_y", sensorEvent.values[1]);
-                            sensorValue.put("gyroscope_z", sensorEvent.values[2]);
-                        } catch (JSONException ex) {
-                            ex.printStackTrace();
-                        }
-                        break;
-                    case Sensor.STRING_TYPE_LIGHT:
-                        try {
-//                            sensorValue.put("light",System.currentTimeMillis()-timestamp);
-                            sensorValue.put("light", sensorEvent.values[0]);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                        break;
-                    case Sensor.STRING_TYPE_PRESSURE:
-                        try {
-//                            sensorValue.put("pressure",System.currentTimeMillis()-timestamp);
-                            sensorValue.put("pressure", sensorEvent.values[0]);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                        break;
-                    case Sensor.STRING_TYPE_GRAVITY:
-                        try {
-                            sensorValue.put("gravity", sensorEvent.values[2]);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                        break;
-                    case Sensor.STRING_TYPE_ROTATION_VECTOR:
-                        try {
-                            sensorValue.put("Rotation vector", sensorEvent.values[0]);
-
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                    case Sensor.STRING_TYPE_LINEAR_ACCELERATION:
-                        try {
-                            sensorValue.put("Linear Acceleration", sensorEvent.values[0]);
-
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                    case Sensor.STRING_TYPE_POSE_6DOF:
-                        try {
-                            sensorValue.put("POSE 6DOF", sensorEvent.values[0]);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-
-                    case Sensor.STRING_TYPE_STEP_COUNTER:
-                        try {
-                            sensorValue.put("STEP COUNTER", sensorEvent.values[0]);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                    case Sensor.STRING_TYPE_PROXIMITY:
-                        try {
-                            sensorValue.put("Proximity", sensorEvent.values[0]);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                    case Sensor.STRING_TYPE_AMBIENT_TEMPERATURE:
-                        try {
-                            sensorValue.put("Temerature", sensorEvent.values[0]);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                    case Sensor.STRING_TYPE_GAME_ROTATION_VECTOR:
-                        try {
-                            sensorValue.put("Rotation", sensorEvent.values[0]);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                    case Sensor.STRING_TYPE_LOW_LATENCY_OFFBODY_DETECT:
-                        try {
-                            sensorValue.put("Offbody", sensorEvent.values[0]);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                    case Sensor.STRING_TYPE_MOTION_DETECT:
-                        try {
-                            sensorValue.put("Motion", sensorEvent.values[0]);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                    case Sensor.STRING_TYPE_STATIONARY_DETECT:
-                        try {
-                            sensorValue.put("Stationary", sensorEvent.values[0]);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                    case Sensor.STRING_TYPE_STEP_DETECTOR:
-                        try {
-                            sensorValue.put("STEP_DETECTOR", sensorEvent.values[0]);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-
-
-                }
-                try {
-                    sensorDic.put("value", sensorValue);
-//                    sensorValue.put("time",sensorDic);
-                } catch (
-                        JSONException e) {
-                    e.printStackTrace();
-                }
-                Log.d(TAG, "SensorDic " + String.valueOf(sensorDic));
-                Log.d(TAG, "SensorValue: " + sensorValue);
-                mainSensorArray.add(sensorDic);
-//                mainSensorArray.add(sensorValue);
-            }
-
-            @Override
-            public void onAccuracyChanged(Sensor sensor, int i) {
-                Log.d(TAG, "sensor " + sensor.toString());
-
-            }
-        };
+//        sensorManager = (SensorManager) getApplicationContext(getSystemService(Context.SENSOR_SERVICE));
 
         btn = findViewById(R.id.button);
         assert btn != null;
@@ -386,7 +386,6 @@ public class MainActivity extends ActionMenuActivity {
                     stopRecording();
                     stopSensor();
                     handler.removeCallbacks(runnableCode);
-
                 } else {
                     reddot.setVisibility(View.VISIBLE);
                     setUpRecord();
@@ -395,12 +394,9 @@ public class MainActivity extends ActionMenuActivity {
                     initSensor();
                     startSensor();
                 }
-
             }
 
         });
-
-
     }
 
     private void onRecord(boolean isRecording) {
@@ -752,6 +748,7 @@ public class MainActivity extends ActionMenuActivity {
     }
 
     private void initSensor() {
+        Log.d(TAG,"initSensor");
 //        // register this class as a listener for the gyroscope sensor
         sensorManager.registerListener(sensorEventListener,
                 sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
@@ -786,34 +783,34 @@ public class MainActivity extends ActionMenuActivity {
 
     private void startSensor() {
 
-//        runnableCode = new Runnable() {
-//            @Override
-//            public void run() {
-//                Log.d("Runnable", "RUN");
-//                String fileName = getFilePath();
-//                sensorFile = new File(fileName + "_sensor.json");
-//                gpsFile = new File(fileName+"_gps.json");
-//                if (isExternalStorageWritable()) {
-//                    writeFileToExternalStorage();
-//                }
-////            filesavetimestamp = System.currentTimeMillis();
-//                handler.postDelayed(this, 3000);
-//            }
-//        };
-//        handler.post(runnableCode);
-//
-//
-        if (System.currentTimeMillis() - filesavetimestamp > 60000) {  //save every 60 seconds
-//            Log.d("startSensor", saveFile.getAbsolutePath());
-            if (isExternalStorageWritable()) {
-                writeFileToExternalStorage();
+        runnableCode = new Runnable() {
+            @Override
+            public void run() {
+                Log.d("Runnable", "RUN");
+                String fileName = getFilePath();
+                sensorFile = new File(fileName + "_sensor.json");
+                gpsFile = new File(fileName+"_gps.json");
+                if (isExternalStorageWritable()) {
+                    writeFileToExternalStorage();
+                }
+//            filesavetimestamp = System.currentTimeMillis();
+                handler.postDelayed(this, 3000);
             }
-            filesavetimestamp = System.currentTimeMillis();
-        }
-
-        String fileName = getFilePath();
-        sensorFile = new File(fileName + "_sensor.json");
-        gpsFile = new File(fileName + "_gps.json");
+        };
+        handler.post(runnableCode);
+//
+////
+//        if (System.currentTimeMillis() - filesavetimestamp > 3000) {  //save every 60 seconds
+////            Log.d("startSensor", saveFile.getAbsolutePath());
+//            if (isExternalStorageWritable()) {
+//                writeFileToExternalStorage();
+//            }
+//            filesavetimestamp = System.currentTimeMillis();
+//        }
+//
+//        String fileName = getFilePath();
+//        sensorFile = new File(fileName + "_sensor.json");
+//        gpsFile = new File(fileName + "_gps.json");
 
 
     }

@@ -198,7 +198,10 @@ public class MainActivity extends ActionMenuActivity {
                 return;
             }
         }
-        locationManager.requestLocationUpdates("gps", 1000, (float) 0.01, locationListener);
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
+        locationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, 0, 0, locationListener);
+
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         sensorEventListener = new SensorEventListener() {
             @Override
@@ -741,6 +744,9 @@ public class MainActivity extends ActionMenuActivity {
 
             Log.e("emotion", "Error writing to file: " + ex.toString());
 
+        }finally {
+            mainSensorArray.clear();
+            gpsArray.clear();
         }
 
     }
@@ -797,13 +803,13 @@ public class MainActivity extends ActionMenuActivity {
 //        handler.post(runnableCode);
 //
 //
-//        if (System.currentTimeMillis() - filesavetimestamp > 3000) {  //save every 3 seconds
-////            Log.d("startSensor", saveFile.getAbsolutePath());
-//            if (isExternalStorageWritable()) {
-//                writeFileToExternalStorage();
-//            }
-//            filesavetimestamp = System.currentTimeMillis();
-//        }
+        if (System.currentTimeMillis() - filesavetimestamp > 60000) {  //save every 60 seconds
+//            Log.d("startSensor", saveFile.getAbsolutePath());
+            if (isExternalStorageWritable()) {
+                writeFileToExternalStorage();
+            }
+            filesavetimestamp = System.currentTimeMillis();
+        }
 
         String fileName = getFilePath();
         sensorFile = new File(fileName + "_sensor.json");

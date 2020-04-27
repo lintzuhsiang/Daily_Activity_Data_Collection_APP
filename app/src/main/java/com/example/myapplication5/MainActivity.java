@@ -62,7 +62,6 @@ import java.util.TimerTask;
 
 
 public class MainActivity extends ActionMenuActivity {
-    public SimpleDateFormat DateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault());
 
     public static long timestamp = System.currentTimeMillis();
     public JSONObject sensorDic;
@@ -102,6 +101,7 @@ public class MainActivity extends ActionMenuActivity {
     private CameraDevice cameraDevice;
     SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault());
     private Handler handler = new Handler();
+    private int file_number = 0;
     private Runnable runnableCode = new Runnable() {
         @Override
         public void run() {
@@ -333,6 +333,7 @@ public class MainActivity extends ActionMenuActivity {
                 } else {
                     reddot.setVisibility(View.VISIBLE);
                     timestamp = System.currentTimeMillis();
+                    file_number = 0;
                     setUpRecord();
                     startRecording();
                     initSensor();
@@ -552,8 +553,13 @@ public class MainActivity extends ActionMenuActivity {
         }
     };
 
+    private String getFilePath(int file_number) {
+        fileName = getExternalFilesDir(Environment.DIRECTORY_PICTURES).getAbsolutePath() + "/" + ACTION + simpleDateFormat.format(timestamp)+"_"+ file_number;
+        Log.i(TAG, "path " + fileName);
+        return fileName;
+    }
     private String getFilePath() {
-        fileName = getExternalFilesDir(Environment.DIRECTORY_PICTURES).getAbsolutePath() + "/" + ACTION + simpleDateFormat.format(new Date());
+        fileName = getExternalFilesDir(Environment.DIRECTORY_PICTURES).getAbsolutePath() + "/" + ACTION + simpleDateFormat.format(timestamp);
         Log.i(TAG, "path " + fileName);
         return fileName;
     }
@@ -622,11 +628,13 @@ public class MainActivity extends ActionMenuActivity {
     private void writeFileToExternalStorage() {
 
         try {
-            String fileName = getFilePath();
+            String fileName = getFilePath(file_number);
             sensorFile = new File(fileName + "_sensor.json");
-            FileOutputStream outputStream = new FileOutputStream(sensorFile);
-            outputStream.write(mainSensorArray.toString().getBytes());
 
+            FileOutputStream outputStream = new FileOutputStream(sensorFile);
+            file_number += 1;
+
+            outputStream.write(mainSensorArray.toString().getBytes());
             outputStream.flush();
             outputStream.close();
 

@@ -1,32 +1,27 @@
 package com.example.myapplication5;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
-import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
-import android.hardware.Camera;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
-import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.media.AudioManager;
 import android.media.CamcorderProfile;
-import android.media.MediaPlayer;
 import android.media.MediaRecorder;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -38,24 +33,14 @@ import android.util.Size;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
-//import android.support.v7.app.AppCompatActivity;
-import androidx.appcompat.widget.AppCompatButton;
-import androidx.core.app.ActivityCompat;
-
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
 
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationRequest;
 import com.vuzix.hud.actionmenu.ActionMenuActivity;
 
 import org.json.JSONException;
@@ -66,7 +51,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -75,44 +59,35 @@ import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
-//public class MainActivity extends AppCompatActivity {
-//public class AudioRecordTest extends AppCompatActivity{
+
+
 public class MainActivity extends ActionMenuActivity {
     public SimpleDateFormat DateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault());
 
-
-
-
     public static long timestamp = System.currentTimeMillis();
-    public static long filesavetimestamp = System.currentTimeMillis();
     public JSONObject sensorDic;
-    public JSONObject gpsDic;
-    public JSONObject gpsValue;
+
     public ArrayList<JSONObject> mainSensorArray = new ArrayList<>();
-    public ArrayList<JSONObject> gpsArray = new ArrayList<>();
 
 
     private Button btn;
     private File sensorFile;
-    private File gpsFile;
-    private Button takePictureButton;
-    private TextView textView;
-    private static final String LOG_TAG = "AudioRecordTest";
     private static final int REQUEST_RECORD_VIDEO_PERMISSION = 300;
     private static final int REQUEST_CAMERA_PERMISSION = 100;
     private static final int REQUEST_RECORD_AUDIO_PERMISSION = 200;
     private static String fileName = null;
-    private File outputFile = null;
 
-    //    private RecordButton recordButton = null;
     private static final String TAG = "Thesis";
-    private static final String ACTION = "TEST_";
+
+    //change user name here
+    private static final String ACTION = "Shine_";
     private boolean mstartRecording = false;
 
-    //    private PlayButton   playButton = null;
-    // Requesting permission to RECORD_AUDIO
     private boolean permissionToRecordAccepted = false;
     private String[] permissions = {Manifest.permission.RECORD_AUDIO};
+    private static final String HANDLE_THREAD_NAME = "CameraBackground";
+    private HandlerThread backgroundHandlerThread;
+    private Handler backgroundHandler;
 
     private ImageView reddot;
     private String cameraId;
@@ -124,11 +99,8 @@ public class MainActivity extends ActionMenuActivity {
     private CameraCaptureSession cameraPrewSession;
     private MediaRecorder recorder = new MediaRecorder();
 
-    private HandlerThread backgroundThread;
     private CameraDevice cameraDevice;
     SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault());
-
-    private Handler timerHandler = new Handler();
     private Handler handler = new Handler();
     private Runnable runnableCode = new Runnable() {
         @Override
@@ -136,27 +108,10 @@ public class MainActivity extends ActionMenuActivity {
 
         }
     };
-
-
     private LocationManager locationManager;
     private LocationListener locationListener = new LocationListener() {
         @Override
         public void onLocationChanged(Location location) {
-            gpsDic = new JSONObject();
-            gpsValue = new JSONObject();
-            try {
-                gpsDic.put("time", System.currentTimeMillis() - timestamp);
-                gpsValue.put("longtitude", location.getLongitude());
-                gpsValue.put("langtitude", location.getLatitude());
-                gpsValue.put("speed",location.getSpeed());
-                gpsDic.put("value", gpsValue);
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
-            Log.d(TAG, String.valueOf(location.getLatitude()));
-            Log.d(TAG, String.valueOf(location.getLongitude()));
-            Log.d(TAG, String.valueOf(location.getLongitude()));
-            gpsArray.add(gpsDic);
         }
 
         @Override
@@ -187,11 +142,10 @@ public class MainActivity extends ActionMenuActivity {
             }
 
             JSONObject sensorValue = new JSONObject();
-//                Log.d(TAG, "sensor get stringType: " + sensorEvent.sensor.getStringType());
             switch (sensorEvent.sensor.getStringType()) {
                 case Sensor.STRING_TYPE_ACCELEROMETER:
                     try {
-//                            sensorValue.put("accelerometer",System.currentTimeMillis()-timestamp);
+//                      sensorValue.put("accelerometer",System.currentTimeMillis()-timestamp);
                         sensorValue.put("accelerometer_x", sensorEvent.values[0]);
                         sensorValue.put("accelerometer_y", sensorEvent.values[1]);
                         sensorValue.put("accelerometer_z", sensorEvent.values[2]);
@@ -311,8 +265,6 @@ public class MainActivity extends ActionMenuActivity {
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
-
-
             }
             try {
                 sensorDic.put("value", sensorValue);
@@ -345,13 +297,6 @@ public class MainActivity extends ActionMenuActivity {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                // TODO: Consider calling
-                //    Activity#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for Activity#requestPermissions for more details.
                 return;
             }
         }
@@ -360,7 +305,6 @@ public class MainActivity extends ActionMenuActivity {
         locationManager.requestLocationUpdates(LocationManager.PASSIVE_PROVIDER, 0, 0, locationListener);
 
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-//        sensorManager = (SensorManager) getApplicationContext(getSystemService(Context.SENSOR_SERVICE));
 
         btn = findViewById(R.id.button);
         assert btn != null;
@@ -379,39 +323,33 @@ public class MainActivity extends ActionMenuActivity {
             public void onClick(View v) {
 
                 Log.d(TAG, "mstartRecording " + mstartRecording);
-//                onRecord(mstartRecording);
 
                 if (mstartRecording) {
                     reddot.setVisibility(View.INVISIBLE);
                     stopRecording();
                     stopSensor();
+                    textureView.setAlpha(0);
                     handler.removeCallbacks(runnableCode);
                 } else {
                     reddot.setVisibility(View.VISIBLE);
+                    timestamp = System.currentTimeMillis();
                     setUpRecord();
                     startRecording();
-
                     initSensor();
                     startSensor();
+                    textureView.setAlpha(1);
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            textureView.setAlpha(0);
+                        }
+                    },10000);
                 }
             }
 
         });
     }
 
-    private void onRecord(boolean isRecording) {
-        if (isRecording) {
-            stopRecording();
-            stopSensor();
-//            Toast.makeText(MainActivity.this, "Now Stop Recording.", Toast.LENGTH_SHORT).show();
-        } else {
-//            fileName = getExternalFilesDir(Environment.DIRECTORY_PICTURES).getAbsolutePath() + "/"+ACTION + simpleDateFormat.format(new Date());
-            setUpRecord();
-            startRecording();
-            startSensor();
-//            Toast.makeText(MainActivity.this, "Now Start Recording.", Toast.LENGTH_SHORT).show();
-        }
-    }
 
 
     private final CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
@@ -420,19 +358,16 @@ public class MainActivity extends ActionMenuActivity {
             Log.e("camera", "onOpened");
             cameraDevice = camera;
         }
-
         @Override
         public void onDisconnected(CameraDevice camera) {
             Log.e("camera", "onClose");
             cameraDevice.close();
             cameraDevice = null;
-
         }
 
         @Override
         public void onError(CameraDevice camera, int error) {
-            Log.e("camera", "onERROR" + error);
-
+            Log.e("camera", "onError" + error);
             cameraDevice.close();
             cameraDevice = null;
         }
@@ -474,7 +409,7 @@ public class MainActivity extends ActionMenuActivity {
         if (recorder == null) {
             recorder = new MediaRecorder();
         }
-        recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        recorder.setAudioSource(MediaRecorder.AudioSource.DEFAULT);
         recorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
 
         CamcorderProfile cpHigh = CamcorderProfile.get(CamcorderProfile.QUALITY_720P);
@@ -502,15 +437,14 @@ public class MainActivity extends ActionMenuActivity {
 
         List<Surface> surfaces = new ArrayList<>(1);
         Surface previewSurface = new Surface(texture);
-        surfaces.add(previewSurface);
         recorderSurface = recorder.getSurface();
-
+        surfaces.add(previewSurface);
         surfaces.add(recorderSurface);
+
         previewRequestBuilder.addTarget(recorderSurface);
         previewRequestBuilder.addTarget(previewSurface);
         try {
             cameraDevice.createCaptureSession(surfaces, new CameraCaptureSession.StateCallback() {
-                //            cameraDevice.createCaptureSession((List<Surface>) recorderSurface, new CameraCaptureSession.StateCallback() {
                 @Override
                 public void onConfigured(CameraCaptureSession cameraCaptureSession) {
                     cameraPrewSession = cameraCaptureSession;
@@ -519,14 +453,12 @@ public class MainActivity extends ActionMenuActivity {
                     } catch (CameraAccessException e) {
                         e.printStackTrace();
                     }
-//
+
                     MainActivity.this.runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
                             mstartRecording = true;
                             recorder.start();
-
-
                         }
                     });
                 }
@@ -547,7 +479,6 @@ public class MainActivity extends ActionMenuActivity {
         if (cameraDevice != null && cameraPrewSession != null) {
             try {
                 cameraPrewSession.stopRepeating();
-//                cameraPrewSession.abortCaptures();
             } catch (CameraAccessException e) {
                 e.printStackTrace();
             }
@@ -564,7 +495,7 @@ public class MainActivity extends ActionMenuActivity {
                 }
             }
         };
-        timer.schedule(timerTask, 30);
+        timer.schedule(timerTask, 100);
 
     }
 
@@ -638,17 +569,17 @@ public class MainActivity extends ActionMenuActivity {
 
     @Override
     protected void onPause() {
-        super.onPause();
+        stopBackgroundThread();
         closeCamera();
+        super.onPause();
         Log.d(TAG, "onPause");
-//        stopThread();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        startBackgroundThread();
         Log.d(TAG, "onResume");
-//        startThread();
         if (textureView.isAvailable()) {
             Log.d(TAG, "onResuem textureView is Available");
             openCamera();
@@ -682,36 +613,6 @@ public class MainActivity extends ActionMenuActivity {
     }
 
 
-    static final int REQUEST_VIDEO_CAPTURE = 10;
-
-    private void recordVideoIntent() {
-        Intent intentRecord = new Intent(MediaStore.ACTION_VIDEO_CAPTURE);
-        intentRecord.putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 0);
-        if (intentRecord.resolveActivity(getPackageManager()) != null) {
-            startActivityForResult(intentRecord, REQUEST_VIDEO_CAPTURE);
-        }
-
-    }
-
-
-    public void startThread() {
-        backgroundThread = new HandlerThread("Camera2");
-        backgroundThread.start();
-        cameraHandler = new Handler(backgroundThread.getLooper());
-    }
-
-    private void stopThread() {
-        backgroundThread.quitSafely();
-        try {
-            backgroundThread.join();
-            backgroundThread = null;
-            cameraHandler = null;
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
-
     private boolean isExternalStorageWritable() {
 
         return Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState());
@@ -721,19 +622,13 @@ public class MainActivity extends ActionMenuActivity {
     private void writeFileToExternalStorage() {
 
         try {
-            sensorFile.createNewFile();
-            gpsFile.createNewFile();
+            String fileName = getFilePath();
+            sensorFile = new File(fileName + "_sensor.json");
             FileOutputStream outputStream = new FileOutputStream(sensorFile);
             outputStream.write(mainSensorArray.toString().getBytes());
 
             outputStream.flush();
             outputStream.close();
-
-            FileOutputStream outputStream2 = new FileOutputStream(gpsFile);
-            outputStream2.write(gpsArray.toString().getBytes());
-
-            outputStream2.flush();
-            outputStream2.close();
 
             Log.d("emotion", "File saved");
         } catch (Exception ex) {
@@ -742,7 +637,6 @@ public class MainActivity extends ActionMenuActivity {
 
         }finally {
             mainSensorArray.clear();
-            gpsArray.clear();
         }
 
     }
@@ -787,30 +681,14 @@ public class MainActivity extends ActionMenuActivity {
             @Override
             public void run() {
                 Log.d("Runnable", "RUN");
-                String fileName = getFilePath();
-                sensorFile = new File(fileName + "_sensor.json");
-                gpsFile = new File(fileName+"_gps.json");
+
                 if (isExternalStorageWritable()) {
                     writeFileToExternalStorage();
                 }
-//            filesavetimestamp = System.currentTimeMillis();
-                handler.postDelayed(this, 3000);
+                handler.postDelayed(this, 30000);
             }
         };
         handler.post(runnableCode);
-//
-////
-//        if (System.currentTimeMillis() - filesavetimestamp > 3000) {  //save every 60 seconds
-////            Log.d("startSensor", saveFile.getAbsolutePath());
-//            if (isExternalStorageWritable()) {
-//                writeFileToExternalStorage();
-//            }
-//            filesavetimestamp = System.currentTimeMillis();
-//        }
-//
-//        String fileName = getFilePath();
-//        sensorFile = new File(fileName + "_sensor.json");
-//        gpsFile = new File(fileName + "_gps.json");
 
 
     }
@@ -821,6 +699,25 @@ public class MainActivity extends ActionMenuActivity {
         }
         sensorManager.unregisterListener(sensorEventListener);
         mainSensorArray = new ArrayList<>();
-        gpsArray = new ArrayList<>();
+    }
+
+
+    private void startBackgroundThread() {
+        backgroundHandlerThread = new HandlerThread(HANDLE_THREAD_NAME);
+        backgroundHandlerThread.start();
+        backgroundHandler = new Handler(backgroundHandlerThread.getLooper());
+    }
+
+    private void stopBackgroundThread() {
+        if (backgroundHandlerThread != null) {
+            backgroundHandlerThread.quitSafely();
+        }
+        try {
+            backgroundHandlerThread.join();
+            backgroundHandlerThread = null;
+            backgroundHandler = null;
+        } catch (InterruptedException e) {
+            Log.e(TAG, "Interrupted when stopping background thread", e);
+        }
     }
 }

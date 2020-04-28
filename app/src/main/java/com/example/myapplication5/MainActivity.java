@@ -255,6 +255,7 @@ public class MainActivity extends ActionMenuActivity {
 
         Toast.makeText(MainActivity.this, "Tap to start App.", Toast.LENGTH_LONG).show();
 
+        //TODO
         detectDoubleClickThread = new Thread(
                 new Runnable() {
                     @Override
@@ -306,7 +307,7 @@ public class MainActivity extends ActionMenuActivity {
 
         });
     }
-
+    //TODO
     private void detectDoubleClick(){
         Intent intent = new Intent();
         KeyEvent event = intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
@@ -646,10 +647,10 @@ public class MainActivity extends ActionMenuActivity {
                 sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
                 SensorManager.SENSOR_DELAY_NORMAL);
 
-        // register this class as a listener for the gyroscope sensor
-//        sensorManager.registerListener(sensorEventListener,
-//                sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-//                SensorManager.SENSOR_DELAY_NORMAL);
+//         register this class as a listener for the gyroscope sensor
+        sensorManager.registerListener(sensorEventListener,
+                sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
+                SensorManager.SENSOR_DELAY_NORMAL);
 
 
         // register this class as a listener for the gyroscope sensor

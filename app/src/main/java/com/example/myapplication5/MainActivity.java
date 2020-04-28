@@ -19,7 +19,6 @@ import android.hardware.camera2.params.StreamConfigurationMap;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.media.AudioManager;
 import android.media.CamcorderProfile;
 import android.media.MediaRecorder;
 import android.os.Build;
@@ -27,15 +26,14 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.provider.MediaStore;
 import android.util.Log;
 import android.util.Size;
+import android.view.KeyEvent;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -51,9 +49,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
@@ -130,6 +128,8 @@ public class MainActivity extends ActionMenuActivity {
         }
     };
     private SensorManager sensorManager;
+    private ArrayList<String> sensorKeyHolder = new ArrayList<>();
+    private ArrayList<String> sensorNeedKeys = new ArrayList<>(Arrays.asList("android.sensor.accelerometer", "android.sensor.gyroscope", "android.sensor.magnetic_field"));
     private SensorEventListener sensorEventListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent sensorEvent) {
@@ -142,6 +142,11 @@ public class MainActivity extends ActionMenuActivity {
             }
 
             JSONObject sensorValue = new JSONObject();
+            if(!sensorKeyHolder.contains(sensorEvent.sensor.getStringType())){
+                sensorKeyHolder.add(sensorEvent.sensor.getStringType());
+            }
+
+
             switch (sensorEvent.sensor.getStringType()) {
                 case Sensor.STRING_TYPE_ACCELEROMETER:
                     try {
@@ -196,75 +201,6 @@ public class MainActivity extends ActionMenuActivity {
                         e.printStackTrace();
                     }
                     break;
-                case Sensor.STRING_TYPE_ROTATION_VECTOR:
-                    try {
-                        sensorValue.put("Rotation vector", sensorEvent.values[0]);
-
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                case Sensor.STRING_TYPE_LINEAR_ACCELERATION:
-                    try {
-                        sensorValue.put("Linear Acceleration", sensorEvent.values[0]);
-
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                case Sensor.STRING_TYPE_POSE_6DOF:
-                    try {
-                        sensorValue.put("POSE 6DOF", sensorEvent.values[0]);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-
-                case Sensor.STRING_TYPE_STEP_COUNTER:
-                    try {
-                        sensorValue.put("STEP COUNTER", sensorEvent.values[0]);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                case Sensor.STRING_TYPE_PROXIMITY:
-                    try {
-                        sensorValue.put("Proximity", sensorEvent.values[0]);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                case Sensor.STRING_TYPE_AMBIENT_TEMPERATURE:
-                    try {
-                        sensorValue.put("Temerature", sensorEvent.values[0]);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                case Sensor.STRING_TYPE_GAME_ROTATION_VECTOR:
-                    try {
-                        sensorValue.put("Rotation", sensorEvent.values[0]);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                case Sensor.STRING_TYPE_LOW_LATENCY_OFFBODY_DETECT:
-                    try {
-                        sensorValue.put("Offbody", sensorEvent.values[0]);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                case Sensor.STRING_TYPE_MOTION_DETECT:
-                    try {
-                        sensorValue.put("Motion", sensorEvent.values[0]);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                case Sensor.STRING_TYPE_STATIONARY_DETECT:
-                    try {
-                        sensorValue.put("Stationary", sensorEvent.values[0]);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                case Sensor.STRING_TYPE_STEP_DETECTOR:
-                    try {
-                        sensorValue.put("STEP_DETECTOR", sensorEvent.values[0]);
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
             }
             try {
                 sensorDic.put("value", sensorValue);
@@ -285,7 +221,8 @@ public class MainActivity extends ActionMenuActivity {
 
         }
     };
-
+    static int d = 0;
+    private Thread detectDoubleClickThread;
     @Override
     public void onCreate(Bundle bundle) {
         super.onCreate(bundle);
@@ -318,6 +255,16 @@ public class MainActivity extends ActionMenuActivity {
 
         Toast.makeText(MainActivity.this, "Tap to start App.", Toast.LENGTH_LONG).show();
 
+        detectDoubleClickThread = new Thread(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        detectDoubleClick();
+                    }
+                }
+        );
+        detectDoubleClickThread.start();
+
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -342,7 +289,16 @@ public class MainActivity extends ActionMenuActivity {
                     new Handler().postDelayed(new Runnable() {
                         @Override
                         public void run() {
+                            for(String value:sensorKeyHolder){
+                                Log.d("sensorKeyHolder",value);
+                            }
+                            for(String value:sensorNeedKeys){
+                                Log.d("sensorNeedKeys",value);
+                            }
                             textureView.setAlpha(0);
+                            if(!sensorKeyHolder.containsAll(sensorNeedKeys)){
+                                Toast.makeText(MainActivity.this, "Sensors not registered successfully. PLEASE RESTART THE APP.", Toast.LENGTH_LONG).show();
+                            }
                         }
                     },10000);
                 }
@@ -351,7 +307,40 @@ public class MainActivity extends ActionMenuActivity {
         });
     }
 
+    private void detectDoubleClick(){
+        Intent intent = new Intent();
+        KeyEvent event = intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
+        if (event == null) {
+            return;
+        }
+        int action = event.getAction();
+        Log.d("eventKeyCode", String.valueOf(event.getKeyCode()));
+        switch (event.getKeyCode()) {
+            case KeyEvent.KEYCODE_HEADSETHOOK:
+                if (action == KeyEvent.ACTION_DOWN) {
+                    d++;
+                    Handler handler = new Handler();
+                    Runnable r = new Runnable() {
 
+                        @Override
+                        public void run() {
+                            // single click *******************************
+                            if (d == 1) {
+                                Toast.makeText(MainActivity.this, "single click!", Toast.LENGTH_SHORT).show();
+                            }
+                            // double click *********************************
+                            if (d == 2) {
+                                Toast.makeText(MainActivity.this, "Double click!!", Toast.LENGTH_SHORT).show();
+                            }
+                            d = 0;
+                        }
+                    };
+                    if (d == 1) {
+                        handler.postDelayed(r, 500);
+                    }
+                }break;
+        }
+    }
 
     private final CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
         @Override
@@ -577,6 +566,7 @@ public class MainActivity extends ActionMenuActivity {
     protected void onPause() {
         stopBackgroundThread();
         closeCamera();
+        detectDoubleClickThread = null;
         super.onPause();
         Log.d(TAG, "onPause");
     }
@@ -654,32 +644,32 @@ public class MainActivity extends ActionMenuActivity {
 //        // register this class as a listener for the gyroscope sensor
         sensorManager.registerListener(sensorEventListener,
                 sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE),
-                SensorManager.SENSOR_DELAY_FASTEST);
+                SensorManager.SENSOR_DELAY_NORMAL);
 
         // register this class as a listener for the gyroscope sensor
-        sensorManager.registerListener(sensorEventListener,
-                sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-                SensorManager.SENSOR_DELAY_FASTEST);
+//        sensorManager.registerListener(sensorEventListener,
+//                sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
+//                SensorManager.SENSOR_DELAY_NORMAL);
 
 
         // register this class as a listener for the gyroscope sensor
         sensorManager.registerListener(sensorEventListener,
                 sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),
-                SensorManager.SENSOR_DELAY_FASTEST);
+                SensorManager.SENSOR_DELAY_NORMAL);
 
         // register this class as a listener for the gyroscope sensor
         sensorManager.registerListener(sensorEventListener,
                 sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT),
-                SensorManager.SENSOR_DELAY_FASTEST);
+                SensorManager.SENSOR_DELAY_NORMAL);
 
         // register this class as a listener for the gyroscope sensor
         sensorManager.registerListener(sensorEventListener,
                 sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY),
-                SensorManager.SENSOR_DELAY_FASTEST);
+                SensorManager.SENSOR_DELAY_NORMAL);
 
         sensorManager.registerListener(sensorEventListener,
                 sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE),
-                SensorManager.SENSOR_DELAY_FASTEST);
+                SensorManager.SENSOR_DELAY_NORMAL);
 
     }
 

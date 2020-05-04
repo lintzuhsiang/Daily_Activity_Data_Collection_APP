@@ -222,6 +222,7 @@ public class MainActivity extends ActionMenuActivity {
         }
     };
     static int d = 0;
+    private int countclick = 0;
     private Thread detectDoubleClickThread;
     @Override
     public void onCreate(Bundle bundle) {
@@ -255,92 +256,62 @@ public class MainActivity extends ActionMenuActivity {
 
         Toast.makeText(MainActivity.this, "Tap to start App.", Toast.LENGTH_LONG).show();
 
-        //TODO
-        detectDoubleClickThread = new Thread(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        detectDoubleClick();
-                    }
-                }
-        );
-        detectDoubleClickThread.start();
+
 
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
                 Log.d(TAG, "mstartRecording " + mstartRecording);
-
-                if (mstartRecording) {
-                    reddot.setVisibility(View.INVISIBLE);
-                    stopRecording();
-                    stopSensor();
-                    textureView.setAlpha(0);
-                    handler.removeCallbacks(runnableCode);
-                } else {
-                    reddot.setVisibility(View.VISIBLE);
-                    timestamp = System.currentTimeMillis();
-                    file_number = 0;
-                    setUpRecord();
-                    startRecording();
-                    initSensor();
-                    startSensor();
-                    textureView.setAlpha(1);
-                    new Handler().postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            for(String value:sensorKeyHolder){
-                                Log.d("sensorKeyHolder",value);
+                countclick++;
+                Handler clickHandler = new Handler();
+                Runnable runnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        countclick = 0;
+                    }
+                };
+                if(countclick==1){
+                    Log.d(TAG, "clickCount1: " + countclick);
+                    clickHandler.postDelayed(runnable,500);
+                }else if(countclick==2) {
+                    Log.d(TAG, "clickCount2: " + countclick);
+                    countclick = 0;
+                    if (mstartRecording) {
+                        reddot.setVisibility(View.INVISIBLE);
+                        stopRecording();
+                        stopSensor();
+                        textureView.setAlpha(0);
+                        handler.removeCallbacks(runnableCode);
+                    } else {
+                        reddot.setVisibility(View.VISIBLE);
+                        timestamp = System.currentTimeMillis();
+                        file_number = 0;
+                        setUpRecord();
+                        startRecording();
+                        initSensor();
+                        startSensor();
+                        textureView.setAlpha(1);
+                        new Handler().postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                for (String value : sensorKeyHolder) {
+                                    Log.d("sensorKeyHolder", value);
+                                }
+                                for (String value : sensorNeedKeys) {
+                                    Log.d("sensorNeedKeys", value);
+                                }
+                                textureView.setAlpha(0);
+                                if (!sensorKeyHolder.containsAll(sensorNeedKeys)) {
+                                    Toast.makeText(MainActivity.this, "Sensors not registered successfully. PLEASE RESTART THE APP.", Toast.LENGTH_LONG).show();
+                                }
                             }
-                            for(String value:sensorNeedKeys){
-                                Log.d("sensorNeedKeys",value);
-                            }
-                            textureView.setAlpha(0);
-                            if(!sensorKeyHolder.containsAll(sensorNeedKeys)){
-                                Toast.makeText(MainActivity.this, "Sensors not registered successfully. PLEASE RESTART THE APP.", Toast.LENGTH_LONG).show();
-                            }
-                        }
-                    },10000);
+                        }, 10000);
+                    }
                 }
             }
 
         });
-    }
-    //TODO
-    private void detectDoubleClick(){
-        Intent intent = new Intent();
-        KeyEvent event = intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
-        if (event == null) {
-            return;
-        }
-        int action = event.getAction();
-        Log.d("eventKeyCode", String.valueOf(event.getKeyCode()));
-        switch (event.getKeyCode()) {
-            case KeyEvent.KEYCODE_HEADSETHOOK:
-                if (action == KeyEvent.ACTION_DOWN) {
-                    d++;
-                    Handler handler = new Handler();
-                    Runnable r = new Runnable() {
-
-                        @Override
-                        public void run() {
-                            // single click *******************************
-                            if (d == 1) {
-                                Toast.makeText(MainActivity.this, "single click!", Toast.LENGTH_SHORT).show();
-                            }
-                            // double click *********************************
-                            if (d == 2) {
-                                Toast.makeText(MainActivity.this, "Double click!!", Toast.LENGTH_SHORT).show();
-                            }
-                            d = 0;
-                        }
-                    };
-                    if (d == 1) {
-                        handler.postDelayed(r, 500);
-                    }
-                }break;
-        }
     }
 
     private final CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
